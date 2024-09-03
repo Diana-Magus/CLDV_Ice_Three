@@ -98,6 +98,55 @@ namespace CLDV6212_Ice_Three_Functions.Functions
             await _storageService.DeleteTeamAsync(partitionKey, rowKey);
             return new OkResult();
         }
+
+        [Function("CheckTeamAnswer")]
+        public async Task<IActionResult> CheckTeamAnswer(
+            [HttpTrigger(AuthorizationLevel.Function, "post", Route = "teams/check-answer")] HttpRequest req,
+            ILogger log)
+        {
+            log.LogInformation("C# HTTP trigger function processed a request to check a team's answer.");
+
+            string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
+            HintModel submission;
+           
+
+            try
+            {
+
+                submission = JsonSerializer.Deserialize<HintModel>(requestBody, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+            }
+            catch (JsonException)
+            {
+                return new BadRequestObjectResult("Invalid submission data. Unable to parse JSON.");
+            }
+
+            if (submission == null || submission.TeamID == 0 || submission.HintID == 0 || string.IsNullOrEmpty(submission.HintAnswer))
+            {
+                return new BadRequestObjectResult("Invalid submission data. Please provide TeamID, HintD, and Answer.");
+            }
+
+            // Get the team and hint from storage
+            var team = await _storageService.GetTeamByIdAsync("TeamPartition", submission.TeamID);
+            var hint = await _storageService.GetHintByIdAsync("HintPartition", submission.HintID);
+
+            if (team == null || hint == null)
+            {
+                return new NotFoundObjectResult("Team or Hint not found.");
+            }
+
+          
+                // Increment the team's treasure count
+                team.TeamScore++;
+                await _storageService.AddTeamAsync(team);
+
+                log.LogInformation($"Team {team.TeamID} answered correctly and now has {team.TeamScore} treasures.");
+            
+
+            return new OkResult();
+        }
     }
 }
 

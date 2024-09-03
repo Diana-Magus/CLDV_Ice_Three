@@ -78,7 +78,7 @@ namespace CLDV6212_Ice_Three_Functions.Services
 
         public async Task<TeamModel?> GetTeamByIdAsync(string partitionKey, int teamId)
         {
-            var query = _teamTableClient.QueryAsync<TeamModel>(filter: $"PartitionKey eq '{partitionKey}' and Team_Id eq {teamId}");
+            var query = _teamTableClient.QueryAsync<TeamModel>(filter: $"PartitionKey eq '{partitionKey}' and TeamID eq {teamId}");
             await foreach (var team in query)
             {
                 return team;
@@ -137,7 +137,7 @@ namespace CLDV6212_Ice_Three_Functions.Services
 
         public async Task<TreasureModel?> GetTreasureByIdAsync(string partitionKey, int treasureId)
         {
-            var query = _treasureTableClient.QueryAsync<TreasureModel>(filter: $"PartitionKey eq '{partitionKey}' and Treasure_Id eq {treasureId}");
+            var query = _treasureTableClient.QueryAsync<TreasureModel>(filter: $"PartitionKey eq '{partitionKey}' and TreasureID eq {treasureId}");
             await foreach (var treasure in query)
             {
                 return treasure;
@@ -175,5 +175,16 @@ namespace CLDV6212_Ice_Three_Functions.Services
             }
             return hints;
         }
+
+        public async Task<TeamModel?> GetHintByIdAsync(string partitionKey, int hintID)
+        {
+            var query = _teamTableClient.QueryAsync<HintModel>(filter: $"PartitionKey eq '{partitionKey}' and HintID eq {hintID}");
+            await foreach (var hint in query)
+            {
+                return hint;
+            }
+            return null;
+        }
+
     }
 }
