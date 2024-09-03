@@ -68,19 +68,20 @@ namespace CLDV6212_Ice_Three_Functions.Functions
 
         [Function("AddHint")]
         public async Task<IActionResult> AddHintAsync(
-        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "hints")] [FromBody] string model)
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "hints")] HttpRequest req)
         {
             _logger.LogInformation("Processing AddHint request.");
 
 
-            // var formData = await req.ReadFormAsync();
 
 
-            // var imageFile = formData.Files.GetFile("HintImage");
+            string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
+
+            
+            var hint = JsonConvert.DeserializeObject<HintModel>(requestBody);
 
 
-            //  var hintJson = formData["HintData"];
-            var hint = model;
+            
 
             if (hint == null)
             {
@@ -88,24 +89,24 @@ namespace CLDV6212_Ice_Three_Functions.Functions
             }
 
 
-            string hintImageUrl = null;
+          //  string hintImageUrl = null;
 
-            //   if (imageFile != null)
-            //  {
-            //      hintImageUrl = await _blobStorageService.UploadsHintAsync(imageFile.OpenReadStream(), imageFile.FileName);
+           // if (imageFile != null)
+           //   {
+              //   hintImageUrl = await _blobStorageService.UploadsHintAsync(imageFile.OpenReadStream(), imageFile.FileName);
 
-            //     hint.HintImageUrl = hintImageUrl;
-            //  }
+             //   hint.HintImageUrl = hintImageUrl;
+             //}
 
-            //  try
-            //   {
-            //       await _tableStorageService.AddHintAsync(hint);
-            //}
-            //   catch (Exception ex)
-            //     {
-            //      _logger.LogError(ex, "Error adding hint.");
-            //    return new StatusCodeResult(StatusCodes.Status500InternalServerError);
-            // }
+             try
+               {
+                await _tableStorageService.AddHintAsync(hint);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error adding hint.");
+                return new StatusCodeResult(StatusCodes.Status500InternalServerError);
+            }
 
             return new OkObjectResult("Hint added successfully.");
         }
