@@ -17,6 +17,8 @@ namespace CLDV6212_Ice_Three_Functions.Models
         [Key]
         public int HintID { get; set; }
 
+        public int TeamID { get; set; } // FK to team (needed)
+
         public string? HintName { get; set; }
 
         public string? HintText { get; set; }
