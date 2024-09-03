@@ -63,11 +63,15 @@ namespace CLDV6212_Ice_Three_Functions.Functions
         {
             log.LogInformation("Processing AddHint request.");
 
+            var requestBody = await new StreamReader(req.Body).ReadToEndAsync();
+            var hint = JsonConvert.DeserializeObject<HintModel>(requestBody);
+
+            if (hint == null)
+            {
+                return new BadRequestObjectResult("Invalid hint data.");
+            }
+
             var formData = await req.ReadFormAsync();
-
-            var hintJson = formData["HintModel"];
-            var hint = JsonConvert.DeserializeObject<HintModel>(hintJson);
-
             var imageFile = formData.Files.GetFile("HintImage");
             string hintImageUrl = null;
 
@@ -77,12 +81,16 @@ namespace CLDV6212_Ice_Three_Functions.Functions
                 hint.HintImageUrl = hintImageUrl;
             }
 
-            if (hint == null)
+            try
             {
-                return new BadRequestObjectResult("Invalid hint data.");
+                await _tableStorageService.AddHintAsync(hint);
+            }
+            catch (Exception ex)
+            {
+                log.LogError(ex, "Error adding hint.");
+                return new StatusCodeResult(StatusCodes.Status500InternalServerError);
             }
 
-            await _tableStorageService.AddHintAsync(hint);
             return new OkObjectResult("Hint added successfully.");
         }
 
@@ -106,6 +114,58 @@ namespace CLDV6212_Ice_Three_Functions.Functions
             }
 
             return new OkObjectResult("Hint deleted successfully.");
+        }
+        [Function("GiveTeamHint")]
+        public async Task<IActionResult> GiveTeamHintAsync(
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "hints/give/{hintID}/{teamID}")] HttpRequest req, string hintID, string teamID, ILogger log)
+        {
+            log.LogInformation("Processing GiveTeamHint request.");
+
+            var hint = await _tableStorageService.GetHintAsync("defaultPartition", hintID);
+            if (hint == null)
+            {
+                return new NotFoundObjectResult("Hint not found.");
+            }
+
+            hint.TeamID = teamID;
+
+            try
+            {
+                await _tableStorageService.UpdateHintAsync(hint);
+            }
+            catch (Exception ex)
+            {
+                log.LogError(ex, "Error giving hint to team.");
+                return new StatusCodeResult(StatusCodes.Status500InternalServerError);
+            }
+
+            return new OkObjectResult("Hint assigned to team successfully.");
+        }
+        [Function("MarkHintAsFound")]
+        public async Task<IActionResult> MarkHintAsFoundAsync(
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "hints/markfound/{hintID}")] HttpRequest req, string hintID, ILogger log)
+        {
+            log.LogInformation("Processing MarkHintAsFound request.");
+
+            var hint = await _tableStorageService.GetHintAsync("defaultPartition", hintID);
+            if (hint == null)
+            {
+                return new NotFoundObjectResult("Hint not found.");
+            }
+
+            hint.IsFound = true;
+
+            try
+            {
+                await _tableStorageService.UpdateHintAsync(hint);
+            }
+            catch (Exception ex)
+            {
+                log.LogError(ex, "Error marking hint as found.");
+                return new StatusCodeResult(StatusCodes.Status500InternalServerError);
+            }
+
+            return new OkObjectResult("Hint marked as found.");
         }
     }
 }
