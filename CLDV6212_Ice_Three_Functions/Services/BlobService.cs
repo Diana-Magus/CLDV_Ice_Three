@@ -19,7 +19,7 @@ namespace CLDV6212_Ice_Three_Functions.Services
         private readonly string _containerTreasure = "treasure";
         private readonly string _containerHint = "hint";
 
-        public BlobService(string connectionString)
+        public BlobService()
         {
             _blobServiceClient = new BlobServiceClient(connectionString);
         }

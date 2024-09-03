@@ -1,4 +1,5 @@
 ﻿using CLDV6212_Ice_Three_Functions.Models;
+using CLDV6212_Ice_Three_Functions.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
@@ -11,21 +12,25 @@ namespace CLDV6212_Ice_Three_Functions.Functions
     public class HintFunctions
     {
         private readonly TableStorageService _tableStorageService;
-        private readonly BlobStorageService _blobStorageService;
+        private readonly BlobService _blobStorageService;
+        private readonly ILogger<HintFunctions> _logger;
 
-        public HintFunctions(TableStorageService tableStorageService, BlobStorageService blobStorageService)
+        public HintFunctions(TableStorageService tableStorageService, BlobService blobStorageService, ILogger<HintFunctions> log)
         {
             _tableStorageService = tableStorageService;
             _blobStorageService = blobStorageService;
+            _logger = log;
         }
 
         [Function("GetHints")]
         public async Task<IActionResult> GetHintsAsync(
-            [HttpTrigger(AuthorizationLevel.Function, "get", Route = "hints/{HintID}")] HttpRequest req,string HintID,ILogger log)
+            [HttpTrigger(AuthorizationLevel.Function, "get", Route = "hints/{HintID}")] HttpRequest req, string HintID)
         {
-            log.LogInformation("Processing GetHints request.");
+            _logger.LogInformation("Processing GetHints request.");
 
-            var hint = await _tableStorageService.GetHintAsync("PartitionKey", HintID);
+            int iHintID = Int32.Parse(HintID);
+
+            var hint = await _tableStorageService.GetHintByIdAsync("PartitionKey", iHintID);
             if (hint == null)
             {
                 return new NotFoundObjectResult("Hint not found");
@@ -33,7 +38,11 @@ namespace CLDV6212_Ice_Three_Functions.Functions
             Stream blobContent = null;
             if (!string.IsNullOrEmpty(hint.HintImageUrl))
             {
-                blobContent = await _blobStorageService.GetBlobAsync(hint.HintImageUrl);
+                string img = "replace with file name";
+                var imageUrl = await _blobStorageService.UploadsHintAsync(blobContent, img);
+                hint.HintImageUrl = imageUrl;
+
+                //blobContent = await _blobStorageService.GetBlobAsync(hint.HintImageUrl);
             }
             var response = new
             {
@@ -59,95 +68,115 @@ namespace CLDV6212_Ice_Three_Functions.Functions
 
         [Function("AddHint")]
         public async Task<IActionResult> AddHintAsync(
-        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "hints")] HttpRequest req, ILogger log)
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "hints")] [FromBody] string model)
         {
-            log.LogInformation("Processing AddHint request.");
+            _logger.LogInformation("Processing AddHint request.");
 
-            var requestBody = await new StreamReader(req.Body).ReadToEndAsync();
-            var hint = JsonConvert.DeserializeObject<HintModel>(requestBody);
+
+            // var formData = await req.ReadFormAsync();
+
+
+            // var imageFile = formData.Files.GetFile("HintImage");
+
+
+            //  var hintJson = formData["HintData"];
+            var hint = model;
 
             if (hint == null)
             {
                 return new BadRequestObjectResult("Invalid hint data.");
             }
 
-            var formData = await req.ReadFormAsync();
-            var imageFile = formData.Files.GetFile("HintImage");
+
             string hintImageUrl = null;
 
-            if (imageFile != null)
-            {
-                hintImageUrl = await _blobStorageService.UploadBlobAsync(imageFile.OpenReadStream(), imageFile.FileName);
-                hint.HintImageUrl = hintImageUrl;
-            }
+            //   if (imageFile != null)
+            //  {
+            //      hintImageUrl = await _blobStorageService.UploadsHintAsync(imageFile.OpenReadStream(), imageFile.FileName);
 
-            try
-            {
-                await _tableStorageService.AddHintAsync(hint);
-            }
-            catch (Exception ex)
-            {
-                log.LogError(ex, "Error adding hint.");
-                return new StatusCodeResult(StatusCodes.Status500InternalServerError);
-            }
+            //     hint.HintImageUrl = hintImageUrl;
+            //  }
+
+            //  try
+            //   {
+            //       await _tableStorageService.AddHintAsync(hint);
+            //}
+            //   catch (Exception ex)
+            //     {
+            //      _logger.LogError(ex, "Error adding hint.");
+            //    return new StatusCodeResult(StatusCodes.Status500InternalServerError);
+            // }
 
             return new OkObjectResult("Hint added successfully.");
         }
+        /*
+                [Function("DeleteHint")]
+                public async Task<IActionResult> DeleteHintAsync(
+                [HttpTrigger(AuthorizationLevel.Function, "delete", Route = "hints/{hintID}")] HttpRequest req, string hintID, ILogger log)
+                {
+                    log.LogInformation("Processing DeleteHint request.");
 
-        [Function("DeleteHint")]
-        public async Task<IActionResult> DeleteHintAsync(
-        [HttpTrigger(AuthorizationLevel.Function, "delete", Route = "hints/{hintID}")] HttpRequest req, string hintID, ILogger log)
-        {
-            log.LogInformation("Processing DeleteHint request.");
+                    string partitionKey = "defaultPartition"; 
+                    string rowKey = hintID;
 
-            string partitionKey = "defaultPartition"; 
-            string rowKey = hintID;
+                    try
+                    {
+                        await _tableStorageService.;
+                        await _tableStorageService.DeleteHintAsync(partitionKey, rowKey);
+                    }
+                    catch (Exception ex)
+                    {
+                        log.LogError(ex, "Error deleting hint.");
+                        return new StatusCodeResult(StatusCodes.Status500InternalServerError);
+                    }
 
-            try
-            {
-                await _tableStorageService.DeleteHintAsync(partitionKey, rowKey);
-            }
-            catch (Exception ex)
-            {
-                log.LogError(ex, "Error deleting hint.");
-                return new StatusCodeResult(StatusCodes.Status500InternalServerError);
-            }
+                    return new OkObjectResult("Hint deleted successfully.");
+                }
+        */
 
-            return new OkObjectResult("Hint deleted successfully.");
-        }
         [Function("GiveTeamHint")]
         public async Task<IActionResult> GiveTeamHintAsync(
-        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "hints/give/{hintID}/{teamID}")] HttpRequest req, string hintID, string teamID, ILogger log)
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "hints/give/{hintID}/{teamID}")] HttpRequest req, string hintID, string teamID)
         {
-            log.LogInformation("Processing GiveTeamHint request.");
+            _logger.LogInformation("Processing GiveTeamHint request.");
 
-            var hint = await _tableStorageService.GetHintAsync("defaultPartition", hintID);
+            int iHintID = Int32.Parse(hintID);
+            int iTeamID = Int32.Parse(teamID);
+
+            var hint = await _tableStorageService.GetHintByIdAsync("defaultPartition", iHintID);
+
             if (hint == null)
             {
                 return new NotFoundObjectResult("Hint not found.");
             }
 
-            hint.TeamID = teamID;
+            hint.TeamID = iTeamID;
 
             try
             {
-                await _tableStorageService.UpdateHintAsync(hint);
+
+                await _tableStorageService.UpdateHintTeamIDAsync(hint.PartitionKey, hint.RowKey, iHintID, iTeamID);
             }
             catch (Exception ex)
             {
-                log.LogError(ex, "Error giving hint to team.");
+                _logger.LogError(ex, "Error giving hint to team.");
                 return new StatusCodeResult(StatusCodes.Status500InternalServerError);
             }
 
             return new OkObjectResult("Hint assigned to team successfully.");
         }
+
+
         [Function("MarkHintAsFound")]
         public async Task<IActionResult> MarkHintAsFoundAsync(
         [HttpTrigger(AuthorizationLevel.Function, "post", Route = "hints/markfound/{hintID}")] HttpRequest req, string hintID, ILogger log)
         {
             log.LogInformation("Processing MarkHintAsFound request.");
 
-            var hint = await _tableStorageService.GetHintAsync("defaultPartition", hintID);
+            int iHintID = Int32.Parse(hintID);
+
+            var hint = await _tableStorageService.GetHintByIdAsync("defaultPartition", iHintID);
+
             if (hint == null)
             {
                 return new NotFoundObjectResult("Hint not found.");
@@ -157,7 +186,8 @@ namespace CLDV6212_Ice_Three_Functions.Functions
 
             try
             {
-                await _tableStorageService.UpdateHintAsync(hint);
+                await _tableStorageService.UpdateHintFoundAsync(hint.PartitionKey, hint.RowKey, iHintID);
+
             }
             catch (Exception ex)
             {

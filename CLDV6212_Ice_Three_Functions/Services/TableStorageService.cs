@@ -6,6 +6,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using CLDV6212_Ice_Three_Functions.Models;
+using System.Xml;
+using static Grpc.Core.Metadata;
 
 namespace CLDV6212_Ice_Three_Functions.Services
 {
@@ -19,7 +21,7 @@ namespace CLDV6212_Ice_Three_Functions.Services
         private readonly TableClient _treasureTableClient;
         private readonly TableClient _hintTableClient;
 
-        public TableStorageService(string connectionString)
+        public TableStorageService()
         {
             _teamTableClient = new TableClient(connectionString, "Team");
             _treasureTableClient = new TableClient(connectionString, "Treasure");
@@ -176,15 +178,39 @@ namespace CLDV6212_Ice_Three_Functions.Services
             return hints;
         }
 
-        public async Task<TeamModel?> GetHintByIdAsync(string partitionKey, int hintID)
+        public async Task<HintModel?> GetHintByIdAsync(string partitionKey, int hintID)
         {
-            var query = _teamTableClient.QueryAsync<HintModel>(filter: $"PartitionKey eq '{partitionKey}' and HintID eq {hintID}");
+            var query = _hintTableClient.QueryAsync<HintModel>(filter: $"PartitionKey eq '{partitionKey}' and HintID eq {hintID}");
             await foreach (var hint in query)
             {
                 return hint;
             }
             return null;
         }
+
+        public async Task UpdateHintTeamIDAsync(string partitionKey, string rowKey, int hintID, int teamID)
+        {
+            HintModel hint = await _hintTableClient.GetEntityAsync<HintModel>(partitionKey, rowKey);
+
+
+                hint.TeamID = teamID;
+
+            await _hintTableClient.UpdateEntityAsync(hint, hint.ETag, TableUpdateMode.Replace);
+        }
+
+        public async Task UpdateHintFoundAsync(string partitionKey, string rowKey, int hintID)
+        {
+            HintModel hint = await _hintTableClient.GetEntityAsync<HintModel>(partitionKey, rowKey);
+
+
+            hint.IsFound = true;
+
+            await _hintTableClient.UpdateEntityAsync(hint, hint.ETag, TableUpdateMode.Replace);
+        }
+
+
+
+
 
     }
 }

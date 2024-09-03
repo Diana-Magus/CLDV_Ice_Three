@@ -10,16 +10,16 @@ namespace CLDV6212_Ice_Three_Functions.Functions
 {
     public class TeamTableFunctions
     {
-        private readonly ILogger<TeamTableFunctions> _logger;
+        //private readonly ILogger<TeamTableFunctions> _logger;
 
         private readonly TableStorageService _storageService;
 
         
-        public TeamTableFunctions(ILogger<TeamTableFunctions> logger)
-        {
-            _logger = logger;
+       // public TeamTableFunctions(ILogger<TeamTableFunctions> logger)
+      //  {
+       //     _logger = logger;
            
-        }
+       // }
 
 
         /// <summary>
