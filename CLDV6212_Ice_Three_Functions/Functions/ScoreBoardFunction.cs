@@ -24,14 +24,13 @@ namespace CLDV6212_Ice_Three_Functions.Functions
             List<TeamModel> lstTeams = null;
 
 
-            var teams = await _tableStorageService.GetAllTeamssAsync();
+            var teams = await _tableStorageService.GetAllTeamsAsync();
            
             var orderTeams = teams.OrderByDescending(x => x.TeamScore).ToList();
 
             lstTeams = orderTeams;
 
             return new OkObjectResult(lstTeams);
-
 
         }
     }
