@@ -59,8 +59,8 @@ namespace CLDV6212_Ice_Three_Functions.Functions
 
         [Function("AddHint")]
         public async Task<IActionResult> AddHintAsync(
-         [HttpTrigger(AuthorizationLevel.Function, "post", Route = "hints")] HttpRequest req, ILogger log)
-            {
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "hints")] HttpRequest req, ILogger log)
+        {
             log.LogInformation("Processing AddHint request.");
 
             var formData = await req.ReadFormAsync();
@@ -84,6 +84,28 @@ namespace CLDV6212_Ice_Three_Functions.Functions
 
             await _tableStorageService.AddHintAsync(hint);
             return new OkObjectResult("Hint added successfully.");
+        }
+
+        [Function("DeleteHint")]
+        public async Task<IActionResult> DeleteHintAsync(
+        [HttpTrigger(AuthorizationLevel.Function, "delete", Route = "hints/{hintID}")] HttpRequest req, string hintID, ILogger log)
+        {
+            log.LogInformation("Processing DeleteHint request.");
+
+            string partitionKey = "defaultPartition"; 
+            string rowKey = hintID;
+
+            try
+            {
+                await _tableStorageService.DeleteHintAsync(partitionKey, rowKey);
+            }
+            catch (Exception ex)
+            {
+                log.LogError(ex, "Error deleting hint.");
+                return new StatusCodeResult(StatusCodes.Status500InternalServerError);
+            }
+
+            return new OkObjectResult("Hint deleted successfully.");
         }
     }
 }
