@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace CLDV6212_Ice_Three_Functions.Models
 {
-    internal class TreasureModel : ITableEntity
+    public class TreasureModel : ITableEntity
     {
 
         [Key]
