@@ -9,7 +9,7 @@ using CLDV6212_Ice_Three_Functions.Models;
 
 namespace CLDV6212_Ice_Three_Functions.Services
 {
-    internal class TableStorageService
+    public class TableStorageService
     {
 
 
